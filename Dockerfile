@@ -1,4 +1,4 @@
-FROM python:3.6-stretch
+FROM python:3.8
 ENV PYTHONUNBUFFERED 1
 
 LABEL maintainer="Nick Satterly <nick.satterly@gmail.com>"
@@ -21,13 +21,23 @@ RUN apt-get update && \
     libldap2-dev \
     libpq-dev \
     libsasl2-dev \
-    mongodb-clients \
     nginx-light \
     postgresql-client \
     python3-dev \
     supervisor \
     wget && \
+    gnupg && \
     apt-get -y clean && \
+    apt-get autoremove -y \
+    rm -rf /var/lib/apt/lists/*
+
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | apt-key add -
+RUN echo "deb http://repo.mongodb.org/apt/debian buster/mongodb-org/4.2 main" | tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    mongodb-org-shell
+    apt-get -y clean && \
+    apt-get autoremove -y \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/requirements.txt
@@ -36,7 +46,7 @@ RUN pip install --no-cache-dir virtualenv && \
     /venv/bin/pip install -r /app/requirements.txt
 ENV PATH $PATH:/venv/bin
 
-RUN /venv/bin/pip install alerta alerta-server==$VERSION
+RUN /venv/bin/pip install alerta alerta-server==$VERSION python-ldap PySAML2
 COPY install-plugins.sh /app/install-plugins.sh
 COPY plugins.txt /app/plugins.txt
 RUN /app/install-plugins.sh
